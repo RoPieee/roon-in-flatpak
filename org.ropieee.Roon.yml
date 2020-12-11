@@ -1,0 +1,105 @@
+app-id: org.ropieee.Roon
+runtime: org.freedesktop.Platform
+runtime-version: '20.08'
+sdk: org.freedesktop.Sdk
+command: roon.sh
+
+sdk-extensions:
+    - org.freedesktop.Sdk.Compat.i386
+    - org.freedesktop.Sdk.Extension.toolchain-i386
+
+build-options:
+    env:
+    - WINEPREFIX: /var/data/.local/share/roon
+    - V: '0'
+
+finish-args:
+  - --persist=.local/share/roon
+  - --share=ipc
+  - --share=network
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=all
+  - --share=network
+  - --allow=multiarch
+  - --allow=devel
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.gnome.Mutter.DisplayConfig
+  - --filesystem=~/Games:create
+  - --filesystem=xdg-desktop
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-pictures
+  - --filesystem=xdg-music
+  - --filesystem=xdg-videos
+  - --filesystem=xdg-download
+  - --filesystem=~/.var/app/org.ropieee.Roon:ro
+  - --env=PATH=/app/bin:/app/runners/bin:/usr/bin:/app/utils/bin
+
+modules:
+  - name: wine-stable
+    buildsystem: "simple"
+    build-commands:
+      - ./configure --libdir=/app/lib --enable-win64 --disable-tests --with-x
+      - make CFLAGS='-fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security  -Wp,-D_GLIBCXX_ASSERTIONS -m64 -mtune=generic -fasynchronous-unwind-tables -O2'
+      - make install libdir=/app/lib dlldir=/app/lib/wine LDCONFIG=/bin/true
+    post-install:
+      - mkdir -p "/app/usr/bin"
+    sources:
+      - type: archive
+        url: https://dl.winehq.org/wine/source/5.0/wine-5.0.3.tar.xz
+        sha256: 9c1a35362fd513dff5c845bf76da63ea105a794ac7144aa503f71361af36d22f
+
+  - name: cabextract
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://www.cabextract.org.uk/cabextract-1.9.1.tar.gz
+        sha256: afc253673c8ef316b4d5c29cc4aa8445844bee14afffbe092ee9469405851ca7
+
+  - name: wget
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://ftp.gnu.org/gnu/wget/wget-1.19.4.tar.gz
+        sha256: 93fb96b0f48a20ff5be0d9d9d3c4a986b469cb853131f9d5fe4cc9cecbc8b5b5
+
+  - name: winetricks
+    buildsystem: simple
+    build-commands:
+      - install winetricks /app/bin
+    no-make-install: true
+    sources:
+      - type: file
+        url: https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
+        sha256: a9b29ba26439b2193ae8144d629a97d3501104081510088ab0e7a3bbd9f222af
+   
+  - name: dotnetmeuk
+    buildsystem: simple
+    build-commands:
+      - install NDP472-KB4054530-x86-x64-AllOS-ENU.exe /app/bin
+    no-make-install: true
+    sources:
+      - type: file
+        url: https://download.microsoft.com/download/6/E/4/6E48E8AB-DC00-419E-9704-06DD46E5F81D/NDP472-KB4054530-x86-x64-AllOS-ENU.exe
+        sha256: c908f0a5bea4be282e35acba307d0061b71b8b66ca9894943d3cbb53cad019bc
+   
+  - name: roon
+    buildsystem: simple
+    build-commands:
+      - install --directory /var/data/.local/share/roon
+      - install roon.sh /app/bin
+    no-make-install: true
+    sources:
+      - type: file
+        path: roon.sh
+
+  - name: desktop
+    buildsystem: simple
+    build-commands:
+      - install -D --mode=644 roon.desktop /app/share/applications/org.ropieee.Roon.desktop
+    no-make-install: true
+    sources:
+      - type: file
+        path: roon.desktop
+
